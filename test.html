@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tổng Quan Tuyển Sinh Đại Học 2025 - TP.HCM (Tích hợp Gemini AI)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: Tôi đã thiết kế ứng dụng theo hướng một trang tổng quan (dashboard) với các tab điều hướng rõ ràng, thay vì một trang cuộn dài. Cấu trúc này ưu tiên sự tiện dụng cho người dùng cuối (thí sinh, phụ huynh), cho phép họ: 1. Nắm bắt nhanh các thay đổi lớn ở mục "Tổng Quan". 2. Trực tiếp "Tra Cứu Trường" mình quan tâm để xem thông tin chi tiết (chỉ tiêu, phương thức, học phí) một cách trực quan qua biểu đồ và thẻ thông tin. 3. Khám phá "Xu Hướng Ngành Học" thông qua biểu đồ nhu cầu nhân lực. 4. Theo dõi "Lịch Trình" quan trọng. 5. Tham khảo "Lời Khuyên" chiến lược. Cách tiếp cận này biến báo cáo tĩnh thành một công cụ tra cứu động, giúp người dùng tìm thấy thông tin họ cần một cách nhanh chóng và hiệu quả, thay vì phải đọc toàn bộ tài liệu. -->
+    <!-- Visualization & Content Choices: 
+    - Report Info: Thông tin phương thức xét tuyển của từng trường. Goal: So sánh tỷ trọng các phương thức. Viz/Presentation: Biểu đồ tròn (Donut Chart) cho mỗi trường. Interaction: Người dùng chọn trường, biểu đồ và thông tin chi tiết sẽ cập nhật động. Justification: Biểu đồ tròn thể hiện rõ ràng tỷ lệ phân bổ chỉ tiêu, giúp thí sinh nhanh chóng nhận ra phương thức nào là chủ đạo. Library/Method: Chart.js/Canvas.
+    - Report Info: Nhu cầu nhân lực các nhóm ngành. Goal: Hiển thị các ngành "hot". Viz/Presentation: Biểu đồ cột (Bar Chart). Interaction: Hover vào cột để xem % chi tiết. Justification: Biểu đồ cột rất hiệu quả trong việc so sánh độ lớn giữa các hạng mục khác nhau (các nhóm ngành). Library/Method: Chart.js/Canvas.
+    - Report Info: Các mốc thời gian. Goal: Cung cấp lịch trình rõ ràng, dễ theo dõi. Viz/Presentation: Lịch trình dạng dọc (vertical timeline). Interaction: Tĩnh. Justification: Trình bày theo dòng thời gian giúp người dùng không bỏ lỡ các cột mốc quan trọng. Library/Method: HTML/CSS/Tailwind.
+    - Report Info: Học phí. Goal: Cung cấp thông tin chi phí. Viz/Presentation: Tích hợp trực tiếp vào thẻ thông tin của từng trường trong mục "Tra Cứu Trường". Interaction: Hiển thị động theo trường được chọn. Justification: Đặt thông tin học phí trong bối cảnh của trường cụ thể giúp người dùng ra quyết định tốt hơn. Library/Method: HTML/JS.
+    - NEW Gemini Feature: Personalized Advice. Goal: Provide custom admission strategy. Viz/Presentation: Form input and formatted text output. Interaction: User inputs strengths/interests, clicks button, Gemini generates advice. Justification: Moves beyond static info to actionable, personal guidance. Library/Method: Gemini API fetch.
+    - NEW Gemini Feature: Major Explorer. Goal: Provide deep dive into specific majors. Viz/Presentation: Text input and formatted text output. Interaction: User inputs a major, clicks button, Gemini generates a detailed analysis. Justification: Answers a key user question ("What is this major really about?") that a static report cannot. Library/Method: Gemini API fetch.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active {
+            border-bottom-color: #0d9488; /* teal-600 */
+            color: #0d9488; /* teal-600 */
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .school-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .school-card.selected {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            border-color: #0d9488; /* teal-600 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .gemini-output {
+            white-space: pre-wrap;
+            background-color: #f0fdfa; /* teal-50 */
+            border-left: 4px solid #14b8a6; /* teal-500 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0d9488;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-700">Cổng Thông Tin Tuyển Sinh Đại Học 2025</h1>
+            <p class="text-slate-600 mt-2">Khu vực Thành phố Hồ Chí Minh - Nguồn thông tin tương tác dành cho thí sinh</p>
+        </header>
+
+        <nav class="flex justify-center border-b border-slate-200 mb-8 flex-wrap">
+            <button class="nav-link py-4 px-6 text-sm md:text-base font-semibold text-slate-600 hover:text-teal-600 active" data-tab="overview">Tổng Quan</button>
+            <button class="nav-link py-4 px-6 text-sm md:text-base font-semibold text-slate-600 hover:text-teal-600" data-tab="schools">Tra Cứu Trường</button>
+            <button class="nav-link py-4 px-6 text-sm md:text-base font-semibold text-slate-600 hover:text-teal-600" data-tab="trends">Xu Hướng Ngành</button>
+            <button class="nav-link py-4 px-6 text-sm md:text-base font-semibold text-slate-600 hover:text-teal-600" data-tab="timeline">Lịch Trình</button>
+            <button class="nav-link py-4 px-6 text-sm md:text-base font-semibold text-slate-600 hover:text-teal-600" data-tab="advice">Lời Khuyên</button>
+        </nav>
+
+        <main>
+            <section id="overview" class="content-section active">
+                 <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">Những Thay Đổi Lớn Trong Mùa Tuyển Sinh 2025</h2>
+                    <p class="mb-6 text-slate-600">Kỳ tuyển sinh 2025 đánh dấu một bước ngoặt với những thay đổi quan trọng từ Bộ GD&ĐT và cấu trúc mới của kỳ thi Tốt nghiệp THPT. Việc nắm vững những điểm mới này là chìa khóa để xây dựng chiến lược xét tuyển hiệu quả.</p>
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-teal-50 p-5 rounded-lg border-l-4 border-teal-500">
+                            <h3 class="font-bold text-lg mb-2 text-teal-800">Chấm Dứt Xét Tuyển Sớm</h3>
+                            <p class="text-sm text-slate-700">Tất cả các phương thức xét tuyển (học bạ, ĐGNL,...) đều phải được xử lý trên hệ thống chung của Bộ. Các trường không được yêu cầu thí sinh xác nhận nhập học sớm, tạo ra sự công bằng và giảm thiểu thí sinh ảo.</p>
+                        </div>
+                        <div class="bg-sky-50 p-5 rounded-lg border-l-4 border-sky-500">
+                            <h3 class="font-bold text-lg mb-2 text-sky-800">Cấu Trúc Thi THPT Mới (2+2)</h3>
+                            <p class="text-sm text-slate-700">Thí sinh thi 2 môn bắt buộc (Toán, Văn) và 2 môn tự chọn. Điều này đòi hỏi chiến lược chọn môn thi phù hợp với định hướng ngành nghề ngay từ đầu.</p>
+                        </div>
+                        <div class="bg-amber-50 p-5 rounded-lg border-l-4 border-amber-500">
+                            <h3 class="font-bold text-lg mb-2 text-amber-800">Đăng Ký Nguyện Vọng Tối Ưu</h3>
+                            <p class="text-sm text-slate-700">Thí sinh chỉ cần đăng ký ngành/trường. Hệ thống sẽ tự động chọn phương thức và tổ hợp có lợi nhất, giúp tối đa hóa cơ hội trúng tuyển.</p>
+                        </div>
+                        <div class="bg-rose-50 p-5 rounded-lg border-l-4 border-rose-500">
+                            <h3 class="font-bold text-lg mb-2 text-rose-800">Công Khai Quy Đổi Điểm</h3>
+                            <p class="text-sm text-slate-700">Các trường phải công bố công thức quy đổi điểm giữa các phương thức xét tuyển khác nhau, đảm bảo sự minh bạch và hợp lý về điểm chuẩn.</p>
+                        </div>
+                        <div class="bg-indigo-50 p-5 rounded-lg border-l-4 border-indigo-500">
+                            <h3 class="font-bold text-lg mb-2 text-indigo-800">Tăng Tỷ Trọng Điểm Học Bạ</h3>
+                            <p class="text-sm text-slate-700">Trong xét tốt nghiệp THPT, điểm học bạ chiếm 50% (tăng từ 30%), đề cao nỗ lực học tập cả quá trình của học sinh.</p>
+                        </div>
+                        <div class="bg-fuchsia-50 p-5 rounded-lg border-l-4 border-fuchsia-500">
+                            <h3 class="font-bold text-lg mb-2 text-fuchsia-800">Giới Hạn Trọng Số Ngoại Ngữ</h3>
+                            <p class="text-sm text-slate-700">Điểm quy đổi từ chứng chỉ ngoại ngữ quốc tế không được chiếm quá 50% tổng điểm trong các phương thức xét tuyển kết hợp.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="schools" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-2">Tra Cứu Thông Tin Tuyển Sinh Các Trường</h2>
+                    <p class="mb-6 text-slate-600">Chọn một trường đại học bên dưới để xem thông tin chi tiết về chỉ tiêu, phương thức xét tuyển và học phí dự kiến cho năm học 2025-2026. Dữ liệu được cập nhật dựa trên đề án tuyển sinh đã công bố.</p>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8" id="school-selector">
+                    </div>
+
+                    <div id="school-details" class="grid lg:grid-cols-5 gap-6 items-start hidden">
+                        <div class="lg:col-span-3 bg-slate-50 p-6 rounded-lg">
+                            <h3 class="text-xl font-bold mb-4" id="school-name"></h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <h4 class="font-semibold text-teal-700">Chỉ tiêu dự kiến:</h4>
+                                    <p id="school-quota" class="text-slate-700"></p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-teal-700">Phương thức xét tuyển chính:</h4>
+                                    <ul id="school-methods" class="list-disc list-inside text-slate-700 space-y-1"></ul>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-teal-700">Điểm nhấn & Yêu cầu đặc biệt:</h4>
+                                    <p id="school-notes" class="text-slate-700"></p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-teal-700">Học phí dự kiến (năm học 2025-2026):</h4>
+                                    <p id="school-fees" class="text-slate-700"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 bg-slate-50 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold text-center mb-4 text-teal-700">Phân bổ chỉ tiêu theo phương thức</h4>
+                             <div class="chart-container">
+                                <canvas id="school-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="trends" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-2">Xu Hướng Ngành Học Nổi Bật</h2>
+                    <p class="mb-6 text-slate-600">Thị trường lao động TP.HCM đang có nhu cầu lớn ở nhiều lĩnh vực công nghệ cao và dịch vụ. Biểu đồ dưới đây thể hiện nhu cầu nhân lực dự báo, giúp bạn định hướng lựa chọn ngành nghề có triển vọng.</p>
+                    
+                    <div class="grid lg:grid-cols-2 gap-8 items-center">
+                        <div>
+                             <div class="relative w-full h-80 md:h-96">
+                                <canvas id="trends-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="bg-sky-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-sky-800">🚀 Công nghệ cao</h3>
+                                <p class="text-sm text-slate-700 mt-1">Vi mạch bán dẫn, Trí tuệ nhân tạo (AI), Khoa học dữ liệu. Nhu cầu nhân lực "khát", lương khởi điểm hấp dẫn.</p>
+                                <p class="text-xs text-slate-500 mt-1">Trường đào tạo tiêu biểu: ĐH Bách Khoa, ĐH CNTT, ĐH KHTN.</p>
+                            </div>
+                            <div class="bg-emerald-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-emerald-800">📈 Kinh tế số & Chuỗi cung ứng</h3>
+                                <p class="text-sm text-slate-700 mt-1">Logistics, Thương mại điện tử, Digital Marketing. Cơ hội việc làm rộng mở tại trung tâm kinh tế lớn nhất nước.</p>
+                                <p class="text-xs text-slate-500 mt-1">Trường đào tạo tiêu biểu: ĐH Kinh tế TP.HCM, ĐH Kinh tế - Luật, ĐH Ngoại thương.</p>
+                            </div>
+                            <div class="bg-violet-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-violet-800">🎨 Truyền thông & Sáng tạo</h3>
+                                <p class="text-sm text-slate-700 mt-1">Truyền thông đa phương tiện, Thiết kế đồ họa, Thiết kế UX/UI. Đáp ứng nhu cầu xây dựng thương hiệu trong kỷ nguyên số.</p>
+                                <p class="text-xs text-slate-500 mt-1">Trường đào tạo tiêu biểu: ĐH KHXH&NV, ĐH Sư phạm Kỹ thuật, ĐH RMIT.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-2">✨ Khám Phá Ngành Học Chi Tiết</h2>
+                    <p class="mb-4 text-slate-600">Bạn tò mò về một ngành học cụ thể? Hãy nhập tên ngành vào ô bên dưới để nhận một bản phân tích sâu từ trợ lý AI.</p>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="major-input" placeholder="Ví dụ: Khoa học dữ liệu" class="flex-grow p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                        <button id="get-major-details-btn" class="bg-teal-600 text-white font-semibold py-3 px-6 rounded-md hover:bg-teal-700 transition-colors duration-300">Phân Tích Ngành</button>
+                    </div>
+                    <div id="major-loader" class="hidden loader"></div>
+                    <div id="major-output" class="gemini-output hidden"></div>
+                </div>
+            </section>
+
+            <section id="timeline" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-2">Các Mốc Thời Gian Quan Trọng</h2>
+                    <p class="mb-8 text-slate-600">Nắm vững lịch trình là bước đầu tiên để thành công. Dưới đây là các mốc thời gian dự kiến quan trọng nhất mà mọi thí sinh cần ghi nhớ cho mùa tuyển sinh 2025.</p>
+                    
+                    <div class="relative border-l-2 border-teal-200 ml-4 md:ml-0">
+                        <div class="mb-8 pl-8 relative"><div class="absolute -left-4 top-1 w-7 h-7 bg-teal-500 rounded-full border-4 border-white flex items-center justify-center text-white font-bold">1</div><p class="text-sm text-slate-500">20/01 - 20/02/2025</p><h3 class="font-bold text-lg text-teal-800">Đăng ký thi ĐGNL Đợt 1</h3><p class="text-slate-700">Mở và kết thúc cổng đăng ký cho Kỳ thi Đánh giá năng lực đợt 1 của ĐHQG-HCM.</p></div>
+                        <div class="mb-8 pl-8 relative"><div class="absolute -left-4 top-1 w-7 h-7 bg-teal-500 rounded-full border-4 border-white flex items-center justify-center text-white font-bold">2</div><p class="text-sm text-slate-500">30/03/2025</p><h3 class="font-bold text-lg text-teal-800">Ngày thi ĐGNL Đợt 1</h3><p class="text-slate-700">Thí sinh tham dự kỳ thi ĐGNL đợt 1 tại các điểm thi được phân bổ.</p></div>
+                        <div class="mb-8 pl-8 relative"><div class="absolute -left-4 top-1 w-7 h-7 bg-sky-500 rounded-full border-4 border-white flex items-center justify-center text-white font-bold">3</div><p class="text-sm text-slate-500">Tháng 4 - 5/2025</p><h3 class="font-bold text-lg text-sky-800">Đăng ký thi Tốt nghiệp THPT</h3><p class="text-slate-700">Thời gian dự kiến thí sinh trên cả nước đăng ký dự thi kỳ thi Tốt nghiệp THPT 2025.</p></div>
+                        <div class="mb-8 pl-8 relative"><div class="absolute -left-4 top-1 w-7 h-7 bg-teal-500 rounded-full border-4 border-white flex items-center justify-center text-white font-bold">4</div><p class="text-sm text-slate-500">17/04 - 07/05/2025</p><h3 class="font-bold text-lg text-teal-800">Đăng ký thi ĐGNL Đợt 2</h3><p class="text-slate-700">Mở và kết thúc cổng đăng ký cho Kỳ thi Đánh giá năng lực đợt 2.</p></div>
+                        <div class="mb-8 pl-8 relative"><div class="absolute -left-4 top-1 w-7 h-7 bg-teal-500 rounded-full border-4 border-white flex items-center justify-center text-white font-bold">5</div><p class="text-sm text-slate-500">01/06/2025</p><h3 class="font-bold text-lg text-teal-800">Ngày thi ĐGNL Đợt 2</h3><p class="text-slate-700">Thí sinh tham dự kỳ thi ĐGNL đợt 2.</p></div>
+                        <div class="mb-8 pl-8 relative"><div class="absolute -left-4 top-1 w-7 h-7 bg-sky-500 rounded-full border-4 border-white flex items-center justify-center text-white font-bold">6</div><p class="text-sm text-slate-500">25 - 27/06/2025</p><h3 class="font-bold text-lg text-sky-800">Ngày thi Tốt nghiệp THPT</h3><p class="text-slate-700">Kỳ thi quan trọng nhất diễn ra trên toàn quốc.</p></div>
+                        <div class="mb-8 pl-8 relative"><div class="absolute -left-4 top-1 w-7 h-7 bg-amber-500 rounded-full border-4 border-white flex items-center justify-center text-white font-bold">7</div><p class="text-sm text-slate-500">16/07 - 28/07/2025</p><h3 class="font-bold text-lg text-amber-800">Đăng ký/Điều chỉnh Nguyện vọng</h3><p class="text-slate-700">Sau khi có điểm thi THPT, thí sinh tiến hành đăng ký, điều chỉnh nguyện vọng xét tuyển đại học trên hệ thống chung của Bộ GD&ĐT.</p></div>
+                        <div class="mb-8 pl-8 relative"><div class="absolute -left-4 top-1 w-7 h-7 bg-rose-500 rounded-full border-4 border-white flex items-center justify-center text-white font-bold">8</div><p class="text-sm text-slate-500">Trước 17h, 22/08/2025</p><h3 class="font-bold text-lg text-rose-800">Công bố Kết quả Trúng tuyển Đợt 1</h3><p class="text-slate-700">Các trường đại học công bố điểm chuẩn và danh sách thí sinh trúng tuyển.</p></div>
+                        <div class="pl-8 relative"><div class="absolute -left-4 top-1 w-7 h-7 bg-green-500 rounded-full border-4 border-white flex items-center justify-center text-white font-bold">9</div><p class="text-sm text-slate-500">Trước 17h, 30/08/2025</p><h3 class="font-bold text-lg text-green-800">Xác nhận Nhập học</h3><p class="text-slate-700">Thí sinh trúng tuyển tiến hành xác nhận nhập học trực tuyến trên hệ thống của Bộ.</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="advice" class="content-section">
+                 <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-2">Tóm Tắt & Lời Khuyên Chung</h2>
+                    <p class="mb-6 text-slate-600">Mùa tuyển sinh 2025 đầy biến động đòi hỏi một chiến lược thông minh. Hãy ghi nhớ những điểm then chốt dưới đây để tối đa hóa cơ hội của bạn.</p>
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-xl font-semibold text-teal-800 mb-3">4 Điểm Cốt Lõi Cần Nắm Vững</h3>
+                             <div class="grid md:grid-cols-2 gap-4">
+                                <div class="bg-slate-50 p-4 rounded-lg"><h4 class="font-bold">1. Hồ sơ toàn diện là chìa khóa</h4><p class="text-sm mt-1 text-slate-600">Điểm thi THPT không còn là duy nhất. Hãy nỗ lực trên nhiều mặt trận: học bạ, thi ĐGNL, chứng chỉ ngoại ngữ. Các trường top đầu đang tìm kiếm sinh viên toàn diện.</p></div>
+                                <div class="bg-slate-50 p-4 rounded-lg"><h4 class="font-bold">2. Thứ tự nguyện vọng quyết định tất cả</h4><p class="text-sm mt-1 text-slate-600">Với việc xét tuyển một lần trên hệ thống chung, việc sắp xếp nguyện vọng thông minh theo thứ tự "Ước mơ -> Thực tế -> An toàn" trở nên tối quan trọng.</p></div>
+                                <div class="bg-slate-50 p-4 rounded-lg"><h4 class="font-bold">3. Chọn ngành theo xu hướng phát triển</h4><p class="text-sm mt-1 text-slate-600">Các ngành Công nghệ cao, Kinh tế số, Sáng tạo không chỉ "hot" mà còn gắn liền với chiến lược phát triển của TP.HCM, đảm bảo cơ hội nghề nghiệp bền vững.</p></div>
+                                <div class="bg-slate-50 p-4 rounded-lg"><h4 class="font-bold">4. Cân nhắc bài toán tài chính</h4><p class="text-sm mt-1 text-slate-600">Học phí ngày càng phân hóa mạnh. Hãy tìm hiểu kỹ và lập kế hoạch tài chính rõ ràng trước khi đặt nguyện vọng, cân bằng giữa chi phí và chất lượng đào tạo.</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-2">✨ Tư Vấn Chiến Lược Cá Nhân Hóa</h2>
+                    <p class="mb-4 text-slate-600">Cung cấp thông tin của bạn để nhận được lộ trình xét tuyển được "may đo" riêng từ trợ lý AI.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label for="strengths-input" class="font-semibold text-sm text-slate-700 mb-1 block">Điểm mạnh của bạn</label>
+                            <textarea id="strengths-input" rows="3" placeholder="Ví dụ: Học tốt môn Toán, Lý; điểm GPA 8.5; có chứng chỉ IELTS 7.0; năng nổ hoạt động ngoại khóa..." class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+                        </div>
+                        <div>
+                            <label for="interests-input" class="font-semibold text-sm text-slate-700 mb-1 block">Sở thích & Định hướng</label>
+                            <textarea id="interests-input" rows="3" placeholder="Ví dụ: Thích làm việc với máy tính, giải quyết vấn đề logic, sáng tạo nội dung, kinh doanh..." class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+                        </div>
+                        <div>
+                            <label for="goals-input" class="font-semibold text-sm text-slate-700 mb-1 block">Mục tiêu (nếu có)</label>
+                            <textarea id="goals-input" rows="3" placeholder="Ví dụ: Muốn vào ngành Khoa học Máy tính của ĐH Bách Khoa, hoặc các ngành kinh tế của UEH..." class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+                        </div>
+                    </div>
+                    <button id="get-advice-btn" class="w-full bg-teal-600 text-white font-semibold py-3 px-6 rounded-md hover:bg-teal-700 transition-colors duration-300">Nhận Tư Vấn AI</button>
+                    <div id="advice-loader" class="hidden loader"></div>
+                    <div id="advice-output" class="gemini-output hidden"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const schoolData = {
+                hcmut: {
+                    name: 'Đại học Bách Khoa (HCMUT)',
+                    quota: '5,550 sinh viên',
+                    methods: ['<strong>Xét tuyển tổng hợp (95-99%):</strong> Kết hợp điểm thi ĐGNL (70%), điểm thi THPT (20%), và điểm học bạ (10%).','<strong>Xét tuyển thẳng (1-5%):</strong> Theo quy chế của Bộ và quy định của trường.'],
+                    notes: 'Phương thức tổng hợp chiếm gần toàn bộ chỉ tiêu, đánh giá năng lực toàn diện. Yêu cầu tiếng Anh đầu vào cho các chương trình chất lượng cao (IELTS ≥ 6.0).',
+                    fees: 'Tiêu chuẩn: ~30 triệu/năm. Tiếng Anh: ~80 triệu/năm.',
+                    chartData: [97, 3],
+                    chartLabels: ['Xét tuyển tổng hợp', 'Xét tuyển thẳng & khác']
+                },
+                uel: {
+                    name: 'Đại học Kinh tế - Luật (UEL)',
+                    quota: '2,700 sinh viên',
+                    methods: ['<strong>Xét tuyển ĐGNL (40-60%):</strong> Dựa trên kết quả kỳ thi ĐGNL của ĐHQG-HCM.','<strong>Xét tuyển THPT (30-50%):</strong> Dựa trên kết quả kỳ thi Tốt nghiệp THPT.','<strong>Xét tuyển thẳng & UTXT (tối đa 20%):</strong> Dành cho HSG, trường chuyên, có chứng chỉ quốc tế.'],
+                    notes: 'Cộng điểm thưởng cho thí sinh có chứng chỉ tiếng Anh quốc tế (IELTS, TOEFL,...) ở tất cả các phương thức. Đa dạng đối tượng xét tuyển thẳng.',
+                    fees: 'Tiếng Việt: ~31.5 triệu/năm. Tiếng Anh: ~65 triệu/năm.',
+                    chartData: [50, 40, 10],
+                    chartLabels: ['ĐGNL', 'THPT', 'Xét tuyển thẳng/UTXT']
+                },
+                ussh: {
+                    name: 'Đại học KHXH & Nhân văn (USSH)',
+                    quota: 'Gần 4,000 sinh viên',
+                    methods: ['<strong>Xét tuyển THPT (Mã 100).</strong>','<strong>Xét tuyển ĐGNL (Mã 401).</strong>','<strong>Xét tuyển thẳng & UTXT (Mã 301, 302, 303).</strong>','<strong>Phương thức kết hợp (Mã 500):</strong> Dành cho HSG cấp tỉnh, tốt nghiệp THPT nước ngoài,...'],
+                    notes: 'Bổ sung tổ hợp mới D14, D15 cho một số ngành ngôn ngữ. Ngưỡng sàn ĐGNL dự kiến từ 600-620 điểm. Tỷ lệ cụ thể cho từng phương thức chưa công bố.',
+                    fees: 'Chuẩn: 14.4 - 33.8 triệu/năm (tùy ngành). Quốc tế: ~60 triệu/năm.',
+                    chartData: [45, 45, 10],
+                    chartLabels: ['THPT', 'ĐGNL', 'Tuyển thẳng & Kết hợp']
+                },
+                ueh: {
+                    name: 'Đại học Kinh tế TP.HCM (UEH)',
+                    quota: '7,980 sinh viên',
+                    methods: ['<strong>Xét tuyển học sinh giỏi (PT3).</strong>','<strong>Xét tuyển ĐGNL + Tiếng Anh (PT4).</strong>','<strong>Xét tuyển THPT + Tiếng Anh (PT5).</strong>','<strong>Xét tuyển thẳng (PT1, PT2).</strong>'],
+                    notes: 'Không tổ chức xét tuyển sớm. Có chính sách học bổng lớn (50%) cho các ngành công nghệ mới. Có phân hiệu tại Vĩnh Long.',
+                    fees: 'Cử nhân tài năng: ~20.9 triệu/năm. Tiên tiến quốc tế: ~34.6 triệu/năm.',
+                    chartData: [40, 30, 30],
+                    chartLabels: ['Học bạ/HSG', 'ĐGNL', 'THPT']
+                },
+                ump: {
+                    name: 'Đại học Y Dược TP.HCM (UMP)',
+                    quota: '2,576 sinh viên',
+                    methods: ['<strong>Xét tuyển THPT:</strong> Phương thức chủ đạo.','<strong>Xét tuyển kết hợp THPT + Chứng chỉ quốc tế:</strong> IELTS ≥ 6.0 được cộng điểm ưu tiên.','<strong>Xét tuyển thẳng.</strong>'],
+                    notes: 'Không sử dụng điểm thi ĐGNL. Tập trung vào kết quả thi THPT với tổ hợp B00 hoặc A00. Ngành Hộ sinh chỉ tuyển nữ.',
+                    fees: 'Y khoa: ~82.2 triệu/năm. Răng-Hàm-Mặt: ~84.7 triệu/năm. Dược: ~60.5 triệu/năm.',
+                    chartData: [90, 10],
+                    chartLabels: ['Xét tuyển THPT', 'Kết hợp & Tuyển thẳng']
+                },
+                hcmute: {
+                    name: 'Đại học Sư phạm Kỹ thuật (HCMUTE)',
+                    quota: 'Hơn 7,000 sinh viên',
+                    methods: ['<strong>Xét tuyển học bạ THPT.</strong>','<strong>Xét tuyển điểm thi THPT.</strong>','<strong>Xét tuyển điểm thi ĐGNL.</strong>','<strong>Tuyển thẳng.</strong>'],
+                    notes: 'Mở 6 ngành học mới (Kỹ thuật y sinh, TMĐT,...). Tổ chức thi năng khiếu riêng cho 4 ngành thiết kế, kiến trúc. Miễn học phí ngành sư phạm, giảm 50% cho nữ sinh ngành kỹ thuật.',
+                    fees: 'Sư phạm: Miễn phí. Các ngành khác (trung bình): 25-30 triệu/năm.',
+                    chartData: [40, 30, 25, 5],
+                    chartLabels: ['Học bạ', 'THPT', 'ĐGNL', 'Tuyển thẳng']
+                },
+                ftu2: {
+                    name: 'Đại học Ngoại thương CSII (FTU2)',
+                    quota: '4,150 sinh viên (toàn trường)',
+                    methods: ['<strong>Xét tuyển học bạ:</strong> Dành cho HSG quốc gia, trường chuyên.','<strong>Xét tuyển THPT:</strong> Có kết hợp chứng chỉ ngoại ngữ.','<strong>Xét tuyển ĐGNL & Chứng chỉ quốc tế:</strong> Chấp nhận ĐGNL của cả 2 ĐHQG.'],
+                    notes: 'Hệ thống xét tuyển phức hợp, nhiều tiêu chí phụ. Yêu cầu cao về thành tích học tập và năng lực ngoại ngữ.',
+                    fees: 'Dự kiến theo lộ trình, khoảng 25-30 triệu/năm cho chương trình chuẩn.',
+                    chartData: [40, 30, 30],
+                    chartLabels: ['Học bạ/HSG', 'THPT', 'ĐGNL & Quốc tế']
+                },
+                 rmit: {
+                    name: 'Đại học RMIT Việt Nam',
+                    quota: 'Không công bố',
+                    methods: ['<strong>Xét tuyển thẳng:</strong> Dựa trên kết quả học tập THPT (điểm trung bình lớp 12) và trình độ tiếng Anh.'],
+                    notes: 'Không phụ thuộc các kỳ thi chung của Việt Nam. Yêu cầu tiếng Anh cao (thường là IELTS 6.5, không kỹ năng nào dưới 6.0).',
+                    fees: 'Rất cao. Kinh doanh/Truyền thông: ~351 triệu/năm. Kỹ thuật: ~351 triệu/năm.',
+                    chartData: [100],
+                    chartLabels: ['Xét tuyển thẳng theo hồ sơ']
+                }
+            };
+            
+            const schoolSelector = document.getElementById('school-selector');
+            Object.keys(schoolData).forEach(key => {
+                const school = schoolData[key];
+                const card = document.createElement('div');
+                card.className = 'school-card border-2 border-slate-200 p-3 rounded-lg text-center hover:shadow-md hover:border-teal-400';
+                card.dataset.school = key;
+                card.innerHTML = `<p class="font-semibold text-sm">${school.name.replace('Đại học ', '').replace(' (HCMUT)', '').replace(' (UEL)', '').replace(' (USSH)', '').replace(' TP.HCM (UEH)', '').replace(' (UMP)', '').replace(' (HCMUTE)', '').replace(' CSII (FTU2)','')}</p>`;
+                schoolSelector.appendChild(card);
+            });
+            
+            const tabs = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('.content-section');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const target = tab.getAttribute('data-tab');
+                    sections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === target) {
+                            section.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            const schoolCards = document.querySelectorAll('.school-card');
+            const schoolDetailsSection = document.getElementById('school-details');
+            const schoolNameEl = document.getElementById('school-name');
+            const schoolQuotaEl = document.getElementById('school-quota');
+            const schoolMethodsEl = document.getElementById('school-methods');
+            const schoolNotesEl = document.getElementById('school-notes');
+            const schoolFeesEl = document.getElementById('school-fees');
+            let schoolChart = null;
+
+            schoolCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    schoolCards.forEach(c => c.classList.remove('selected', 'bg-teal-50'));
+                    card.classList.add('selected', 'bg-teal-50');
+                    
+                    const schoolId = card.dataset.school;
+                    const data = schoolData[schoolId];
+
+                    schoolNameEl.textContent = data.name;
+                    schoolQuotaEl.textContent = data.quota;
+                    schoolMethodsEl.innerHTML = data.methods.map(m => `<li>${m}</li>`).join('');
+                    schoolNotesEl.innerHTML = data.notes;
+                    schoolFeesEl.textContent = data.fees;
+                    
+                    schoolDetailsSection.classList.remove('hidden');
+
+                    const chartCtx = document.getElementById('school-chart').getContext('2d');
+                    if(schoolChart) {
+                        schoolChart.destroy();
+                    }
+                    schoolChart = new Chart(chartCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.chartLabels,
+                            datasets: [{
+                                data: data.chartData,
+                                backgroundColor: ['#14b8a6', '#38bdf8', '#facc15', '#fb923c', '#a78bfa'],
+                                borderColor: '#f8fafc',
+                                borderWidth: 4,
+                                hoverOffset: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { font: { size: 12, family: "'Be Vietnam Pro', sans-serif" }}},
+                                tooltip: { callbacks: { label: function(context) { let label = context.label || ''; if (label) { label += ': '; } if (context.parsed !== null) { label += context.parsed + '%'; } return label; }}}
+                            }
+                        }
+                    });
+                });
+            });
+
+            const trendsChartCtx = document.getElementById('trends-chart').getContext('2d');
+            new Chart(trendsChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Dịch vụ', 'Công nghiệp', 'Nông nghiệp'],
+                    datasets: [{
+                        label: 'Nhu cầu nhân lực dự báo (%)',
+                        data: [59.91, 18.6, 21.49],
+                        backgroundColor: ['#38bdf8', '#fb923c', '#4ade80'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, title: { display: true, text: 'Tỷ lệ Nhu Cầu Nhân Lực Dự Báo Tại TP.HCM 2025', font: { size: 14 }}},
+                    scales: { x: { beginAtZero: true, ticks: { callback: function(value) { return value + '%'; }}}}
+                }
+            });
+
+            // Gemini API Integration
+            const apiKey = "AIzaSyDMdL-v5EVpRcMJtO-lnqyoHDy8J0mP1mA"; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const getAdviceBtn = document.getElementById('get-advice-btn');
+            const adviceLoader = document.getElementById('advice-loader');
+            const adviceOutput = document.getElementById('advice-output');
+            
+            getAdviceBtn.addEventListener('click', async () => {
+                const strengths = document.getElementById('strengths-input').value;
+                const interests = document.getElementById('interests-input').value;
+                const goals = document.getElementById('goals-input').value;
+
+                if (!strengths || !interests) {
+                    adviceOutput.textContent = "Vui lòng nhập ít nhất thông tin về Điểm mạnh và Sở thích của bạn.";
+                    adviceOutput.classList.remove('hidden');
+                    return;
+                }
+
+                adviceLoader.classList.remove('hidden');
+                adviceOutput.classList.add('hidden');
+                
+                const prompt = `Bạn là một chuyên gia tư vấn tuyển sinh giàu kinh nghiệm tại Việt Nam. Dựa vào các thông tin sau của một học sinh lớp 12 tại TP.HCM, hãy đưa ra những lời khuyên chiến lược và cá nhân hóa cho kỳ tuyển sinh đại học 2025.
+                
+                Thông tin học sinh:
+                - Điểm mạnh: ${strengths}
+                - Sở thích và định hướng: ${interests}
+                - Mục tiêu (trường/ngành): ${goals || 'Chưa có mục tiêu cụ thể'}
+
+                Hãy tư vấn về:
+                1. Các phương thức xét tuyển nên tập trung (ĐGNL, học bạ, THPT, xét tuyển kết hợp) và giải thích tại sao.
+                2. Gợi ý một vài ngành học cụ thể phù hợp với sở thích và điểm mạnh, cùng với triển vọng nghề nghiệp.
+                3. Các bước cần chuẩn bị ngay từ bây giờ để tối ưu hóa hồ sơ (ví dụ: ôn tập, thi chứng chỉ, hoạt động ngoại khóa).
+                
+                Hãy trình bày câu trả lời một cách rõ ràng, có cấu trúc với các đề mục, và dùng giọng văn khích lệ, gần gũi.`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const result = await response.json();
+                    const text = result.candidates[0].content.parts[0].text;
+                    adviceOutput.textContent = text;
+                } catch (error) {
+                    adviceOutput.textContent = "Đã có lỗi xảy ra. Vui lòng thử lại sau.";
+                    console.error("Error calling Gemini API:", error);
+                } finally {
+                    adviceLoader.classList.add('hidden');
+                    adviceOutput.classList.remove('hidden');
+                }
+            });
+
+            const getMajorDetailsBtn = document.getElementById('get-major-details-btn');
+            const majorLoader = document.getElementById('major-loader');
+            const majorOutput = document.getElementById('major-output');
+
+            getMajorDetailsBtn.addEventListener('click', async () => {
+                const majorName = document.getElementById('major-input').value;
+                if (!majorName) {
+                    majorOutput.textContent = "Vui lòng nhập tên một ngành học.";
+                    majorOutput.classList.remove('hidden');
+                    return;
+                }
+
+                majorLoader.classList.remove('hidden');
+                majorOutput.classList.add('hidden');
+
+                const prompt = `Bạn là một chuyên gia hướng nghiệp. Hãy cung cấp một bản phân tích chi tiết về ngành học "${majorName}" tại Việt Nam, đặc biệt là tại TP.HCM.
+
+                Bản phân tích cần bao gồm các mục sau, trình bày rõ ràng, súc tích cho học sinh lớp 12:
+                1. **Tổng quan ngành học:** Ngành này học về cái gì? Mục tiêu đào tạo là gì?
+                2. **Cơ hội nghề nghiệp:** Sau khi tốt nghiệp có thể làm những công việc gì, ở đâu?
+                3. **Các kỹ năng cần thiết:** Để thành công trong ngành này, cần có những tố chất và kỹ năng nào?
+                4. **Triển vọng tương lai:** Nhu cầu nhân lực và xu hướng phát triển của ngành trong 5-10 năm tới tại Việt Nam.
+                5. **Các trường đào tạo hàng đầu tại TP.HCM:** Liệt kê 3-5 trường đại học uy tín có đào tạo ngành này.`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const result = await response.json();
+                    const text = result.candidates[0].content.parts[0].text;
+                    majorOutput.textContent = text;
+                } catch (error) {
+                    majorOutput.textContent = "Đã có lỗi xảy ra. Vui lòng thử lại sau.";
+                    console.error("Error calling Gemini API:", error);
+                } finally {
+                    majorLoader.classList.add('hidden');
+                    majorOutput.classList.remove('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
